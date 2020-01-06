@@ -2307,10 +2307,11 @@ class CFGFast(ForwardAnalysis, CFGBase):    # pylint: disable=abstract-method
 
         # is it in a section with zero bytes, like .bss?
         obj = self.project.loader.find_object_containing(data_addr)
-        section = obj.find_section_containing(data_addr)
-        if section is not None and section.only_contains_uninitialized_data:
-            # Nothing much you can do
-            return None, None
+        if obj is not None:
+            section = obj.find_section_containing(data_addr)
+            if section is not None and section.only_contains_uninitialized_data:
+                # Nothing much you can do
+                return None, None
 
         pointers_count = 0
 
