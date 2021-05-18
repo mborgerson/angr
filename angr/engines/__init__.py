@@ -28,10 +28,10 @@ class UberEngine(
     pass
 
 
-try:
-    from .pcode import HeavyPcodeMixin
+# try:
+from .pcode import HeavyPcodeMixin
 
-    class UberEnginePcode(SimEngineFailure, SimEngineSyscall, HooksMixin, HeavyPcodeMixin):  # pylint:disable=abstract-method
-        pass
-except ImportError:
+class UberEnginePcode(SimEngineFailure, SimEngineSyscall, HooksMixin, HeavyPcodeMixin):  # pylint:disable=abstract-method
     pass
+# except ImportError:
+#     pass

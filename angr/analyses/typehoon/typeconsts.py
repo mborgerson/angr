@@ -182,6 +182,7 @@ def int_type(bits):
         1: Int1,
         8: Int8,
         16: Int16,
+        24: Int32,
         32: Int32,
         64: Int64,
         128: Int128,

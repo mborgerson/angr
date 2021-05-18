@@ -32,6 +32,8 @@ class CompleteCallingConventionsAnalysis(Analysis):
         sorted_funcs = CFGUtils.quasi_topological_sort_nodes(self.kb.functions.callgraph)
         total_funcs = len(sorted_funcs)
 
+        return
+
         self._update_progress(0)
 
         for idx, func_addr in enumerate(reversed(sorted_funcs)):
