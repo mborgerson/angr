@@ -386,9 +386,12 @@ class SimSuccessors:
         :return: None
         """
 
+        print('_fix_syscall_ip')
+        print('  ' + str(state.ip))
         stub = state.project.simos.syscall(state, allow_unsupported=True)
-        if stub: # can be None if simos is not a subclass of SimUserspace
-            state.ip = stub.addr # fix the IP
+        # if stub: # can be None if simos is not a subclass of SimUserspace
+        #     state.ip = stub.addr # fix the IP
+        #     print('fixed to ' + str(state.ip))
 
     def _finalize(self):
         """

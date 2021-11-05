@@ -331,7 +331,6 @@ class Clinic(Analysis):
         :param stack_pointer_tracker:   The RegisterDeltaTracker analysis instance.
         :return:                        None
         """
-
         blocks_by_addr_and_idx: Dict[Tuple[int,Optional[int]],ailment.Block] = { }
 
         for ail_block in ail_graph.nodes():

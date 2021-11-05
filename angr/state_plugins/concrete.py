@@ -127,9 +127,10 @@ class Concrete(SimStatePlugin):
 
         # flush the angr memory in order to synchronize them with the content of the
         # concrete process memory when a read/write to the page is performed
-        self.state.memory.flush_pages(self.whitelist)
-        l.info("Exiting SimEngineConcrete: simulated address %x concrete address %x ", self.state.addr,
-               target.read_register("pc"))
+        if hasattr(self.state.memory, 'flush_pages'):
+            self.state.memory.flush_pages(self.whitelist)
+            l.info("Exiting SimEngineConcrete: simulated address %x concrete address %x ", self.state.addr,
+                   target.read_register("pc"))
 
         # now we have to register a SimInspect in order to synchronize the segments register
         # on demand when the symbolic execution accesses it

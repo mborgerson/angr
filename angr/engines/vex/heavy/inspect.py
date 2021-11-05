@@ -45,5 +45,3 @@ class SimInspectMixin(VEXMixin):
         super().handle_vex_block(irsb)
         self.state._inspect('instruction', BP_AFTER)
         self.state._inspect('irsb', BP_AFTER, address=irsb.addr)
-
-

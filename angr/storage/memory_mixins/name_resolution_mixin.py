@@ -5,6 +5,9 @@ from . import MemoryMixin
 stn_map = { 'st%d' % n: n for n in range(8) }
 tag_map = { 'tag%d' % n: n for n in range(8) }
 
+import logging
+l = logging.getLogger(name=__name__)
+
 class NameResolutionMixin(MemoryMixin):
     """
     This mixin allows you to provide register names as load addresses, and will automatically translate this to an
@@ -42,6 +45,7 @@ class NameResolutionMixin(MemoryMixin):
 
     def store(self, addr, data, size=None, **kwargs):
         if isinstance(addr, str):
+            l.debug('RESOLVING STORE of %s' % addr)
             named_addr, named_size = self._resolve_location_name(addr, is_write=True)
             if isinstance(data, claripy.ast.BV) and len(data) < named_size * self.state.arch.byte_width:
                 data = data.zero_extend(named_size * self.state.arch.byte_width - len(data))

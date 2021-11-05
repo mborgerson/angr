@@ -11,11 +11,14 @@ l = logging.getLogger(__name__)
 class DefaultFillerMixin(MemoryMixin):
     def _default_value(self, addr, size, name=None, inspect=True, events=True, key=None, fill_missing: bool=True,
                        **kwargs):
-        if self.state.project and self.state.project.concrete_target:
-            mem = self.state.project.concrete_target.read_memory(addr, size)
-            endness = kwargs["endness"]
-            bvv = self.state.solver.BVV(mem)
-            return bvv if endness == 'Iend_BE' else bvv.reversed
+        if self.state.project and self.state.project.concrete_target and self.category == 'mem':
+            try:
+                mem = self.state.project.concrete_target.read_memory(addr, size)
+                endness = kwargs["endness"] if 'endness' in kwargs else self.endness
+                bvv = self.state.solver.BVV(mem)
+                return bvv if endness == 'Iend_BE' else bvv.reversed
+            except Exception as e:
+                l.warning('Failed to read target memory at address %#x', addr)
 
         if fill_missing is False:
             raise SimMemoryMissingError(addr, size)
