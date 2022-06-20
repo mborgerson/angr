@@ -3329,7 +3329,7 @@ class CFGFast(ForwardAnalysis, CFGBase):    # pylint: disable=abstract-method
         # remove the old node from indices
         self._model.remove_node(node.addr, node)
 
-        # remove the old node form the graph
+        # remove the old node from the graph
         self.graph.remove_node(node)
 
         # add the new node to indices
