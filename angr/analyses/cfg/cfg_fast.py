@@ -670,7 +670,6 @@ class CFGFast(ForwardAnalysis, CFGBase):    # pylint: disable=abstract-method
         # sort the regions
         regions = sorted(regions, key=lambda x: x[0])
         self._regions_size = sum((b - a) for a, b in regions)
-        # initial self._regions as a sorted dict
         self._regions = SortedDict(regions)
 
         self._pickle_intermediate_results = pickle_intermediate_results
