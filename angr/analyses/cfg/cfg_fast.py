@@ -2403,7 +2403,7 @@ class CFGFast(ForwardAnalysis, CFGBase):    # pylint: disable=abstract-method
                             data_size=None, data_type=None):
         """
         Checks addresses are in the correct segments and creates or updates
-        MemoryData in _memory_data as appropriate, labelling as segment
+        MemoryData in _memory_data as appropriate, labeling as segment
         boundaries or data type
 
         :param int irsb_addr: irsb address

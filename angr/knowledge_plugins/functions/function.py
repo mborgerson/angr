@@ -921,13 +921,11 @@ class Function(Serializable):
 
     def mark_nonreturning_calls_endpoints(self):
         """
-        Iterate through all call edges in transition graph. For each call a non-returning function, mark the source
+        Iterate through all call edges in transition graph. For each call to a non-returning function, mark the source
         basic block as an endpoint.
 
         This method should only be executed once all functions are recovered and analyzed by CFG recovery, so we know
         whether each function returns or not.
-
-        :return: None
         """
 
         for src, dst, data in self.transition_graph.edges(data=True):
