@@ -68,7 +68,7 @@ class AnalysesHub(PluginVendor):
     This class contains functions for all the registered and runnable analyses,
     """
     def __init__(self, project):
-        super(AnalysesHub, self).__init__()
+        super().__init__()
         self.project = project
 
     @deprecated()
