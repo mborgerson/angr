@@ -31,3 +31,9 @@ dist
 .vscode/
 *.db
 *.dylib
+big-switch.c
+fauxware-patched
+ijr_notes.txt
+log.txt
+tmp/
+

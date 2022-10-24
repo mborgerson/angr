@@ -492,3 +492,12 @@ class CFGModel(Serializable):
             raise AngrCFGError('Edge (%s, %s) does not exist in CFG' % (src_block, dst_block))
 
         return self.graph[src_block][dst_block]['stmt_idx']
+
+    def remove_function_nodes(self, function: 'Function'):
+        """
+        Map nodes of a function's graph to CFGNodes and remove them from the CFG graph.
+        """
+        for addr in function.block_addrs:
+            for node in self.get_all_nodes(addr):
+                self.graph.remove_node(node)
+                self.remove_node(node.addr, node)

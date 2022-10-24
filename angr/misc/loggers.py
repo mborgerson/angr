@@ -63,6 +63,7 @@ class Loggers:
         for name in logging.Logger.manager.loggerDict.keys():
             logging.getLogger(name).setLevel(level)
 
+from ..utils.formatting import ansi_color
 
 class CuteHandler(logging.StreamHandler):
     """
@@ -76,7 +77,14 @@ class CuteHandler(logging.StreamHandler):
             pass
 
         try:
-            record.msg = ("\x1b[%dm" % color) + record.msg + "\x1b[0m"
+            # record.msg = ("\x1b[%dm" % color) + record.msg + "\x1b[0m"
+            color = {
+                'DEBUG': 'gray',
+                'WARNING': 'bright_yellow',
+                'ERROR': 'bright_red',
+            }.get(record.levelname)
+            record.levelname = ansi_color(record.levelname, color)
+            record.msg = ansi_color(record.msg, color)
         except Exception:
             pass
 

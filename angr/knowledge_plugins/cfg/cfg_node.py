@@ -337,7 +337,7 @@ class CFGNode(Serializable):
         if self.is_simprocedure or self.is_syscall:
             return None
         project = self._cfg_model.project  # everything in angr is connected with everything...
-        b = project.factory.block(self.addr, size=self.size, opt_level=self._cfg_model._iropt_level)
+        b = project.factory.block(self.addr, size=self.size, byte_string=self.byte_string, opt_level=self._cfg_model._iropt_level)
         return b
 
 

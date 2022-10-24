@@ -134,7 +134,7 @@ class FunctionManager(KnowledgeBasePlugin, collections.abc.Mapping):
         :return:            None
         """
         with open(filepath, "wb") as f:
-            for src, dst in self.callgraph.edges():
+            for src, dst in self.callgraph.edges():  # FIXME: callgraph.edges returns a list of 3-ples (src,dest,?)
                 f.write("%#x\tDirectEdge\t%#x\n" % (src, dst))
 
     def _add_node(self, function_addr, node, syscall=None, size=None):

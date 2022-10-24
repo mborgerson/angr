@@ -484,7 +484,6 @@ class SegmentList:
         :param str sort:        Type of the block.
         :return: None
         """
-
         if size is None or size <= 0:
             # Cannot occupy a non-existent block
             return

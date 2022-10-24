@@ -389,7 +389,7 @@ class CFBlanket(Analysis):
                         bytes_ = None
                     else:
                         try:
-                            _l.debug("Loading bytes from object %s, section %s, segmeng %s, addresss %#x.",
+                            _l.debug("Loading bytes from object %s, section %s, segment %s, address %#x.",
                                      obj, section, segment, next_addr)
                             bytes_ = self.project.loader.memory.load(next_addr, size)
                         except KeyError:

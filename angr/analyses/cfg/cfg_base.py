@@ -1444,7 +1444,7 @@ class CFGBase(Analysis):
         """
 
         # TODO: Is it required that PLT stubs are always aligned by 16? If so, on what architectures and platforms is it
-        # TODO:  enforced?
+        #       enforced?
 
         tmp_functions = self.kb.functions.copy()
 
@@ -1489,9 +1489,14 @@ class CFGBase(Analysis):
                                                     )
         removed_functions = removed_functions_a | removed_functions_b
 
+        # FIXME: We want to add only the nodes that we newly discovered and leave the existing functions
+
         # Remove all nodes that are adjusted
         function_nodes.difference_update(adjusted_cfgnodes)
         for n in self.graph.nodes():
+            # FIXME: Why is this adding removed functions!?
+            # if (n.addr in tmp_functions) and (n.addr not in removed_functions):
+            # Originally:
             if n.addr in tmp_functions or n.addr in removed_functions:
                 function_nodes.add(n)
 
@@ -1531,6 +1536,8 @@ class CFGBase(Analysis):
         missing_cfg_nodes = { node for node in missing_cfg_nodes if node.function_address is not None }
         if missing_cfg_nodes:
             l.debug('%d CFGNodes are missing in the first traversal.', len(missing_cfg_nodes))
+            for n in missing_cfg_nodes:
+                l.debug('- %s', n)
             secondary_function_nodes |= missing_cfg_nodes
 
         min_stage_3_progress = 90.0
@@ -1966,6 +1973,9 @@ class CFGBase(Analysis):
         if addr in blockaddr_to_function:
             f = blockaddr_to_function[addr]
         else:
+
+            # FIXME: Should we move the known functions check up here?
+
             is_syscall = self.project.simos.is_syscall_addr(addr)
 
             n = self.model.get_any_node(addr, is_syscall=is_syscall)
@@ -2047,6 +2057,7 @@ class CFGBase(Analysis):
             candidate = False
             if dst_addr in known_functions:
                 # dst_addr cannot be the same as src_function.addr. Pass
+                # FIXME: What? Is this sound
                 pass
             elif dst_addr in blockaddr_to_function:
                 # it seems that we already know where this function should belong to. Pass.
@@ -2087,6 +2098,8 @@ class CFGBase(Analysis):
         :return: None
         """
 
+        l.debug('_graph_bfs_custom starts=%s', starts)
+
         stack = OrderedSet(starts)
         traversed = set() if traversed_cfg_nodes is None else traversed_cfg_nodes
 
@@ -2113,8 +2126,8 @@ class CFGBase(Analysis):
                     callback(g, src, dst, data, blockaddr_to_function, known_functions, all_out_edges)
 
                     jumpkind = data.get('jumpkind', "")
-                    if not (jumpkind == 'Ijk_Call' or jumpkind.startswith('Ijk_Sys')):
-                        # Only follow none call edges
+                    if not (jumpkind in ('Ijk_Call', 'Ijk_Ret') or jumpkind.startswith('Ijk_Sys')):
+                        # Only follow non call edges
                         if dst not in stack and dst not in traversed:
                             stack.add(dst)
 
@@ -2132,6 +2145,12 @@ class CFGBase(Analysis):
         :param list or None all_edges: All edges going out from src.
         :return: None
         """
+
+        # FIXME: We don't need to remake functions that we've done before
+        #        How shall we determine when some work needs to be done? Storing newly created nodes in a list and
+        #        handling them?
+
+        l.debug('    _graph_traversal_handler %s -> %s', src, dst)
 
         src_addr = src.addr
         src_function = self._addr_to_function(src_addr, blockaddr_to_function, known_functions)

@@ -51,6 +51,15 @@ class MemoryData(Serializable):
 
         self.content = None  # optional
 
+    def __eq__(self, other: 'MemoryData'):
+        return (self.addr == other.addr
+                and self.size == other.size
+                and self.sort == other.sort
+                and self.max_size == other.max_size
+                and self.pointer_addr == other.pointer_addr
+                and self.content == other.content
+                )
+
     @property
     def address(self):
         return self.addr
