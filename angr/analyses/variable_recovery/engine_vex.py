@@ -62,6 +62,7 @@ class SimEngineVRVEX(
                 vars_to_narrow.add(existing_var)
 
         for var_to_lower in vars_to_narrow:
+            # varman.replace(var_to_lower, var_to_lower.copy_with_resize(4))
             var_to_lower.size = 4
 
     def _handle_WrTmp(self, stmt):
