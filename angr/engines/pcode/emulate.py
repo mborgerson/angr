@@ -1,7 +1,7 @@
 import logging
 from typing import Optional
 
-from pypcode import OpCode, Varnode, PcodeOp, Translation
+from pypcode import OpCode, Varnode, PcodeOp
 import claripy
 from claripy.ast.bv import BV
 
@@ -122,7 +122,7 @@ class PcodeEmulatorMixin(SimEngineBase):
             self._execute_unary()
         else:
             self._execute_binary()
-       
+
         self._current_behavior = None
 
     def _map_register_name(self, varnode: Varnode) -> int:
@@ -241,6 +241,32 @@ class PcodeEmulatorMixin(SimEngineBase):
         """
         Execute the binary behavior of the current op.
         """
+
+        # Validate output
+        assert self._current_op.output is not None
+        if (
+            self._current_op.opcode
+            in [
+                OpCode.INT_LESS,
+                OpCode.INT_SLESS,
+                OpCode.INT_LESSEQUAL,
+                OpCode.INT_SLESSEQUAL,
+                OpCode.INT_EQUAL,
+                OpCode.INT_NOTEQUAL,
+            ]
+            and self._current_op.output.size != 1
+        ):
+            l.warning(
+                "SLEIGH spec states output size for op %s must be 1, but op has %d",
+                self._current_op.opcode.__name__,
+                self._current_op.output.size,
+            )
+
+        # Validate ops that mandate inputs of equal sizes
+        # Validate ops that mandate output of greater size
+
+        # Validate inputs
+
         in0 = self._get_value(self._current_op.inputs[0])
         in1 = self._get_value(self._current_op.inputs[1])
         out = self._current_behavior.evaluate_binary(
@@ -265,7 +291,6 @@ class PcodeEmulatorMixin(SimEngineBase):
         self._set_value(out, res)
 
         # CHECKME: wordsize condition in cpuid load
-
 
     def _execute_store(self) -> None:
         """
@@ -368,6 +393,10 @@ class PcodeEmulatorMixin(SimEngineBase):
         """
         Execute a p-code call operation.
         """
+
+        # FIXME: Spec claims CALL is semantically equivalent to BRANCH. But are p-code relative calls allowed? We assume
+        #        not.
+
         self.successors.add_successor(
             self.state.copy(),  # FIXME: Check extra processing after call
             self._current_op.inputs[0].offset,
@@ -383,11 +412,9 @@ class PcodeEmulatorMixin(SimEngineBase):
         """
         Execute a p-code indirect call operation.
         """
-        expr = self._get_value(self._current_op.inputs[0])
-
         self.successors.add_successor(
             self.state,
-            expr,
+            self._get_value(self._current_op.inputs[0]),
             self.state.scratch.guard,
             "Ijk_Call",
             exit_stmt_idx=DEFAULT_STATEMENT,

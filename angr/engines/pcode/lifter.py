@@ -5,9 +5,8 @@
 #     - Fix default_exit_target
 #     - Fix/remove NotImplementedError's
 
-import copy
 import logging
-from typing import Union, Optional, Iterable, Sequence, Tuple, List
+from typing import Union, Optional, Iterable, Sequence, Tuple
 
 import archinfo
 from archinfo import ArchARM, ArchPcode
@@ -473,7 +472,7 @@ class IRSB:
     def disassembly(self) -> PcodeDisassemblerBlock:
         # FIXME
         if self._disassembly is None:
-            insns = [] #PcodeDisassemblerInsn(ins) for ins in self._instructions]
+            insns = []  # PcodeDisassemblerInsn(ins) for ins in self._instructions]
             thumb = False  # FIXME
             self._disassembly = PcodeDisassemblerBlock(self.addr, insns, thumb, self.arch)
         return self._disassembly
@@ -831,7 +830,13 @@ class PcodeBasicBlockLifter:
 
         try:
             b = bytes(data[bytes_offset:])
-            translation = self.context.translate(b, irsb.addr, max_instructions=max_inst, max_bytes=max_bytes, flags=pypcode.TranslateFlags.BB_TERMINATING)
+            translation = self.context.translate(
+                b,
+                irsb.addr,
+                max_instructions=max_inst,
+                max_bytes=max_bytes,
+                flags=pypcode.TranslateFlags.BB_TERMINATING,
+            )
             irsb._ops = translation.ops
 
             last_decode_addr = irsb.addr
@@ -905,7 +910,7 @@ class PcodeLifterEngineMixin(SimEngineBase):
 
     def __init__(
         self,
-        project,
+        project=None,
         use_cache: Optional[bool] = None,
         cache_size: int = 50000,
         default_opt_level: int = 1,

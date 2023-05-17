@@ -147,7 +147,7 @@ class SuccessorsMixin(SimEngine):
         # we have now officially begun the stepping process! now is where we "cycle" a state's
         # data - move the "present" into the "past" by pushing an entry on the history stack.
         # nuance: make sure to copy from the PREVIOUS state to the CURRENT one
-        # to avoid creating a dead link in the history, messing up the statehierarchy
+        # to avoid creating a dead link in the history, messing up the state hierarchy
         new_state.register_plugin("history", old_state.history.make_child())
         new_state.history.recent_bbl_addrs.append(addr)
         if new_state.arch.unicorn_support:
