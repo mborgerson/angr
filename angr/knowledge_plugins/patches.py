@@ -32,16 +32,20 @@ class PatchManager(KnowledgeBasePlugin):
 
         self._patches: Dict[int, Patch] = SortedDict()
         self._kb = kb
+        self._patched_blank_state = None
 
     def add_patch(self, addr, new_bytes, comment: Optional[str] = None):
         self._patches[addr] = Patch(addr, new_bytes, comment=comment)
+        self._patched_blank_state = None
 
     def add_patch_obj(self, patch: Patch):
         self._patches[patch.addr] = patch
+        self._patched_blank_state = None
 
     def remove_patch(self, addr):
         if addr in self._patches:
             del self._patches[addr]
+        self._patched_blank_state = None
 
     def patch_addrs(self):
         return self._patches.keys()
@@ -111,6 +115,17 @@ class PatchManager(KnowledgeBasePlugin):
                 )
 
         return binary_bytes
+
+    def apply_patches_to_state(self, state):
+        for patch in self._patches.values():
+            state.memory.store(patch.addr, patch.new_bytes)
+
+    @property
+    def patched_blank_state(self):
+        if self._patched_blank_state is None:
+            self._patched_blank_state = self._kb._project.factory.blank_state()
+            self.apply_patches_to_state(self._patched_blank_state)
+        return self._patched_blank_state
 
 
 KnowledgeBasePlugin.register_default("patches", PatchManager)
