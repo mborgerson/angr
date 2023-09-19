@@ -1298,6 +1298,7 @@ class TestDecompiler(unittest.TestCase):
 
         d = proj.analyses.Decompiler(f, cfg=cfg.model, options=decompiler_options)
         self._print_decompilation_result(d)
+        print(d.codegen.text)
 
         # make sure the types of extern variables are correct
         assert "extern char num_connections;" in d.codegen.text

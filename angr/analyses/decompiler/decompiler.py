@@ -394,11 +394,9 @@ class Decompiler(Analysis):
                     SimMemoryVariable(symbol.rebased_addr, 1, name=symbol.name, ident=ident),
                 )
 
-    def reflow_variable_types(self, type_constraints: Set, var_to_typevar: Dict, codegen):
+    def reflow_variable_types(self, type_constraints: Set, var_to_typevar: Dict, codegen: "BaseStructuredCodeGenerator") -> "BaseStructuredCodeGenerator":
         """
         Re-run type inference on an existing variable recovery result, then rerun codegen to generate new results.
-
-        :return:
         """
 
         var_kb = self._variable_kb if self._variable_kb is not None else KnowledgeBase(self.project)

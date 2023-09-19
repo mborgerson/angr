@@ -1032,7 +1032,7 @@ class Clinic(Analysis):
                 ground_truth=groundtruth,
             )
             # tp.pp_constraints()
-            # tp.pp_solution()
+            tp.pp_solution()
             tp.update_variable_types(
                 self.function.addr,
                 {v: t for v, t in vr.var_to_typevars.items() if isinstance(v, (SimRegisterVariable, SimStackVariable))},

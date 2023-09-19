@@ -1,7 +1,7 @@
 # pylint:disable=missing-class-docstring
 import itertools
 from collections import defaultdict
-from typing import Union, Type, Callable
+from typing import TypeVar, Union, Type, Callable
 
 import networkx
 
@@ -96,9 +96,6 @@ class SimpleSolver:
         self.solution = self.determine()
 
     def solve(self):
-        # import pprint
-        # pprint.pprint(self._constraints)
-
         eq_constraints = self._eq_constraints_from_add()
         self._constraints |= eq_constraints
         constraints = self._handle_equivalence()
@@ -107,11 +104,11 @@ class SimpleSolver:
         self._compute_lower_upper_bounds(subtypevars, supertypevars)
         self._lower_struct_fields()
         self._convert_arrays(constraints)
-        # import pprint
-        # print("Lower bounds")
-        # pprint.pprint(self._lower_bounds)
-        # print("Upper bounds")
-        # pprint.pprint(self._upper_bounds)
+        import pprint
+        print("Lower bounds")
+        pprint.pprint(self._lower_bounds)
+        print("Upper bounds")
+        pprint.pprint(self._upper_bounds)
 
     def determine(self):
         solution = {}
@@ -249,17 +246,35 @@ class SimpleSolver:
                     # handle label
                     if isinstance(constraint.type_.label, HasField):
                         # the original variable is a pointer
-                        v = constraint.type_.type_var.type_var
-                        if isinstance(v, TypeVariable):
-                            subtypevars[v].add(
-                                ptr_class(
-                                    Struct(
-                                        fields={
-                                            constraint.type_.label.offset: int_type(constraint.type_.label.bits),
-                                        }
+                        # import ipdb; ipdb.set_trace()
+                        if isinstance(constraint.type_.type_var, DerivedTypeVariable):
+                            v = constraint.type_.type_var.type_var
+                            if isinstance(v, TypeVariable):
+                                # import ipdb; ipdb.set_trace()
+                                subtypevars[v].add(
+                                    ptr_class(
+                                        Struct(
+                                            fields={
+                                                constraint.type_.label.offset: int_type(constraint.type_.label.bits),
+                                            }
+                                        )
                                     )
                                 )
-                            )
+                        elif isinstance(constraint.type_.type_var, TypeVariable):
+                            # import ipdb; ipdb.set_trace()
+                            v = constraint.type_.type_var
+                            if isinstance(v, TypeVariable):
+                                # import ipdb; ipdb.set_trace()
+                                # XXX: Is this sound...?
+                                subtypevars[v].add(
+                                    # ptr_class(
+                                        Struct(
+                                            fields={
+                                                constraint.type_.label.offset: int_type(constraint.type_.label.bits),
+                                            }
+                                        )
+                                    # )
+                                )
 
             elif isinstance(constraint, Subtype):
                 # subtype <: supertype
@@ -304,11 +319,11 @@ class SimpleSolver:
             else:
                 raise NotImplementedError("Unsupported instance type %s." % type(constraint))
 
-        # import pprint
-        # print("Subtype vars")
-        # pprint.pprint(subtypevars)
-        # print("Supertype vars")
-        # pprint.pprint(supertypevars)
+            # import pprint
+            # print("Subtype vars")
+            # pprint.pprint(subtypevars)
+            # print("Supertype vars")
+            # pprint.pprint(supertypevars)
 
         return subtypevars, supertypevars
 
@@ -319,11 +334,14 @@ class SimpleSolver:
             sts = subtypevars[var].copy()
             if isinstance(var, DerivedTypeVariable) and isinstance(var.label, HasField):
                 for subtype_var in sts:
-                    if var.type_var.type_var == subtype_var:
+                    if isinstance(var.type_var, DerivedTypeVariable) and var.type_var.type_var == subtype_var:
+                        # import ipdb; ipdb.set_trace()
                         subtypevars[subtype_var].add(
                             ptr_class(Struct({var.label.offset: TypeVariableReference(subtype_var)}))
                         )
                         self._recursive_types[subtype_var].add(var.label.offset)
+
+                    # FIXME: Struct for recursive?
 
     def _get_lower_bound(self, v):
         if isinstance(v, TypeConstant):
@@ -402,14 +420,30 @@ class SimpleSolver:
         #    becomes
         # tv_680: ptr32(struct{0: ptr32(struct{5: int8})})
 
+        to_add = {}
+
         for outer, outer_lb in self._lower_bounds.items():
             if (
                 isinstance(outer, DerivedTypeVariable)
                 and isinstance(outer.label, HasField)
                 and not isinstance(outer_lb, BottomType)
             ):
+                print(f"{outer=} {outer_lb=}")
+
                 # unpack v
-                base = outer.type_var.type_var
+                if isinstance(outer.type_var, DerivedTypeVariable):
+                    base = outer.type_var.type_var
+                elif isinstance(outer.type_var, TypeVariable):
+
+                    # Reduction of struct. Move elsewhere?
+                    # tv_15.<64>@0 outer_lb=ptr64(struct{0: int8})
+                    # becomes
+                    # <my_var_ptr: None-Mem 0x404020 1> (tv_15) -> ptr64(struct{0: int8})
+                    base = outer.type_var
+                    if isinstance(outer_lb, Pointer):
+                        if isinstance(outer.label, HasField): # Check singular field.
+                            to_add[base] = outer_lb
+                            continue
 
                 if base in self._lower_bounds:
                     base_lb = self._lower_bounds[base]
@@ -434,6 +468,8 @@ class SimpleSolver:
                             if len(base_lb.basetype.fields) == 1 and 0 in base_lb.basetype.fields:
                                 base_lb = base_lb.__class__(base_lb.basetype.fields[0])
                                 self._lower_bounds[base] = base_lb
+
+        self._lower_bounds.update(to_add)
 
     def _convert_arrays(self, constraints):
         for constraint in constraints:

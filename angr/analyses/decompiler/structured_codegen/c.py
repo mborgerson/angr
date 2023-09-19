@@ -517,6 +517,16 @@ class CFunction(CConstruct):  # pylint:disable=abstract-method
 
         if self.codegen.show_local_types:
             local_types = [unpack_typeref(ty) for ty in self.variable_manager.types.iter_own()]
+
+            if self.codegen.show_externs and self.codegen.cexterns:
+                for v in sorted(self.codegen.cexterns, key=lambda v: v.variable.name):
+                    if v.type is not None:
+                        # import ipdb; ipdb.set_trace()
+                        if (isinstance(v.type, SimTypePointer)
+                            and isinstance(v.type.pts_to, TypeRef)
+                            and isinstance(v.type.pts_to.type, SimStruct)):
+                            local_types.append(v.type.pts_to.type)
+
             for ty in local_types:
                 if isinstance(ty, SimStruct):
                     for field in ty.fields.values():

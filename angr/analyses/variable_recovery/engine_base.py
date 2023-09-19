@@ -489,7 +489,7 @@ class SimEngineVRBase(SimEngineLight):
                 ident=variable_manager.next_variable_ident("global"),
             )
             variable_manager.set_variable("global", addr, variable)
-            l.debug("Identified a new global variable %s at %#x.", variable, self.ins_addr)
+            l.debug("YYY Identified a new global variable %s at %#x.", variable, self.ins_addr)
             existing_vars = {(variable, (offset, elem_size))}
         else:
             variable, _ = next(iter(existing_vars))
@@ -534,14 +534,17 @@ class SimEngineVRBase(SimEngineLight):
             # it's an array!
             if offset.concrete and elem_size.concrete:
                 concrete_offset = offset.concrete_value * elem_size.concrete_value
+                assert False
                 store_typevar = typevars.DerivedTypeVariable(
-                    typevars.DerivedTypeVariable(typevar, typevars.Store()),
+                    typevar,
+                    # typevars.DerivedTypeVariable(typevar, typevars.Store()),
                     typevars.HasField(size * self.state.arch.byte_width, concrete_offset),
                 )
                 self.state.add_type_constraint(typevars.Existence(store_typevar))
             else:
                 store_typevar = typevars.DerivedTypeVariable(
-                    typevars.DerivedTypeVariable(typevar, typevars.Store()),
+                    typevar,
+                    # typevars.DerivedTypeVariable(typevar, typevars.Store()),
                     typevars.HasField(size * self.state.arch.byte_width, 0),
                 )
                 self.state.add_type_constraint(typevars.Existence(store_typevar))
@@ -551,15 +554,18 @@ class SimEngineVRBase(SimEngineLight):
 
             if data.typevar is not None:
                 self.state.add_type_constraint(typevars.Subtype(data.typevar, store_typevar))
-
         else:
             # it's just a variable
             # however, since it's a global address, we still treat it as writing to a location
             if data.typevar is not None:
                 store_typevar = typevars.DerivedTypeVariable(
-                    typevars.DerivedTypeVariable(typevar, typevars.Store()),
+                    typevar,
                     typevars.HasField(size * self.state.arch.byte_width, 0),
                 )
+                # store_typevar = typevars.DerivedTypeVariable(
+                #     typevars.DerivedTypeVariable(typevar, typevars.Store()),
+                #     typevars.HasField(size * self.state.arch.byte_width, 0),
+                # )
                 self.state.add_type_constraint(typevars.Existence(store_typevar))
                 self.state.add_type_constraint(typevars.Subtype(data.typevar, store_typevar))
 
@@ -609,6 +615,7 @@ class SimEngineVRBase(SimEngineLight):
             self.block.addr, self.stmt_idx, ins_addr=self.ins_addr, block_idx=getattr(self.block, "idx", None)
         )
         typevar = None
+        is_global = False
 
         if self.state.is_stack_address(addr):
             stack_offset = self.state.get_stack_offset(addr)
@@ -743,12 +750,14 @@ class SimEngineVRBase(SimEngineLight):
             # Loading data from memory
             v = self._load_from_global(addr.concrete_value, size, expr=expr)
             typevar = v.typevar
+            is_global = True
 
         elif self._addr_has_concrete_base(addr) and self._parse_offseted_addr(addr) is not None:
             # Loading data from a memory address with an offset
             base_addr, offset, elem_size = self._parse_offseted_addr(addr)
             v = self._load_from_global(base_addr.concrete_value, size, expr=expr, offset=offset, elem_size=elem_size)
             typevar = v.typevar
+            is_global = True
 
         # Loading data from a pointer
         if richr_addr.type_constraints:
@@ -766,12 +775,21 @@ class SimEngineVRBase(SimEngineLight):
             richr_addr_typevar = richr_addr.typevar
 
         if richr_addr_typevar is not None:
-            # create a type constraint
-            typevar = typevars.DerivedTypeVariable(
-                typevars.DerivedTypeVariable(richr_addr_typevar, typevars.Load()),
-                typevars.HasField(size * self.state.arch.byte_width, offset),
-            )
-            self.state.add_type_constraint(typevars.Existence(typevar))
+            if is_global:
+                # create a type constraint
+                typevar = typevars.DerivedTypeVariable(
+                    richr_addr_typevar,
+                    # typevars.DerivedTypeVariable(richr_addr_typevar, typevars.Load()),
+                    typevars.HasField(size * self.state.arch.byte_width, offset),
+                )
+                self.state.add_type_constraint(typevars.Existence(typevar))
+            else:
+                # create a type constraint
+                typevar = typevars.DerivedTypeVariable(
+                    typevars.DerivedTypeVariable(richr_addr_typevar, typevars.Load()),
+                    typevars.HasField(size * self.state.arch.byte_width, offset),
+                )
+                self.state.add_type_constraint(typevars.Existence(typevar))
 
         return RichR(self.state.top(size * self.state.arch.byte_width), typevar=typevar)
 
@@ -811,7 +829,7 @@ class SimEngineVRBase(SimEngineLight):
                 ident=variable_manager.next_variable_ident("global"),
             )
             variable_manager.add_variable("global", addr, variable)
-            l.debug("Identified a new global variable %s at %#x.", variable, self.ins_addr)
+            l.debug("XXX Identified a new global variable %s at %#x.", variable, self.ins_addr)
             existing_vars = {(variable, (offset, elem_size))}
 
         codeloc = CodeLocation(
@@ -833,16 +851,18 @@ class SimEngineVRBase(SimEngineLight):
             if offset.concrete and elem_size.concrete:
                 concrete_offset = offset.concrete_value * elem_size.concrete_value
                 load_typevar = typevars.DerivedTypeVariable(
-                    typevars.DerivedTypeVariable(typevar, typevars.Store()),
+                    typevar,
+                    # typevars.DerivedTypeVariable(typevar, typevars.Store()),
                     typevars.HasField(size * self.state.arch.byte_width, concrete_offset),
                 )
                 self.state.add_type_constraint(typevars.Existence(load_typevar))
             else:
                 # FIXME: This is a hack
-                for i in range(0, 4):
+                for i in range(0, 2):
                     concrete_offset = size * i
                     load_typevar = typevars.DerivedTypeVariable(
-                        typevars.DerivedTypeVariable(typevar, typevars.Store()),
+                        typevar,
+                        # typevars.DerivedTypeVariable(typevar, typevars.Store()),
                         typevars.HasField(size * self.state.arch.byte_width, concrete_offset),
                     )
                     self.state.add_type_constraint(typevars.Existence(load_typevar))
