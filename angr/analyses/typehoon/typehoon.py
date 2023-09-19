@@ -68,15 +68,6 @@ class Typehoon(Analysis):
             for typevar in typevars:
                 type_ = self.simtypes_solution.get(typevar, None)
                 if type_ is not None:
-                    # print("{} -> {}: {}".format(var, typevar, type_))
-                    # Hack: if a global address is of a pointer type and it is not an array, we unpack the type
-                    if (
-                        func_addr == "global"
-                        and isinstance(type_, SimTypePointer)
-                        and not isinstance(type_.pts_to, SimTypeArray)
-                    ):
-                        type_ = type_.pts_to
-
                     name = None
                     if isinstance(type_, SimStruct):
                         name = type_.name
