@@ -53,11 +53,13 @@ class Typehoon(Analysis):
         self.structs = None
         self.simtypes_solution = None
 
-        # import pprint
-        # pprint.pprint(self._var_mapping)
+        import pprint
+        print('--- VAR MAPPING --')
+        pprint.pprint(self._var_mapping)
+        # print('--- INPUT CONSTRAINTS --')
         # pprint.pprint(self._constraints)
         self._analyze()
-        # pprint.pprint(self.solution)
+        pprint.pprint(self.solution)
 
     #
     # Public methods
@@ -126,6 +128,7 @@ class Typehoon(Analysis):
             for tv, sim_type in self._ground_truth.items():
                 self._constraints.add(Equivalence(tv, translator.simtype2tc(sim_type)))
 
+        self.pp_constraints()
         self._solve()
         self._specialize()
         self._translate_to_simtypes()
