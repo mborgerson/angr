@@ -435,15 +435,16 @@ class SimpleSolver:
                     base = outer.type_var.type_var
                 elif isinstance(outer.type_var, TypeVariable):
 
-                    # Reduction of struct. Move elsewhere?
+                    # Reduction of hasfield. Move elsewhere?
                     # tv_15.<64>@0 outer_lb=ptr64(struct{0: int8})
                     # becomes
                     # <my_var_ptr: None-Mem 0x404020 1> (tv_15) -> ptr64(struct{0: int8})
                     base = outer.type_var
-                    if isinstance(outer_lb, Pointer):
-                        if isinstance(outer.label, HasField): # Check singular field.
-                            to_add[base] = outer_lb
-                            continue
+                    # if isinstance(outer_lb, Pointer):
+                    #     if isinstance(outer.label, HasField): # Check singular field.
+                    #         to_add[base] = outer_lb
+                    #         import ipdb; ipdb.set_trace()
+                    #         continue
 
                 if base in self._lower_bounds:
                     base_lb = self._lower_bounds[base]
@@ -472,13 +473,18 @@ class SimpleSolver:
         self._lower_bounds.update(to_add)
 
     def _convert_arrays(self, constraints):
+        # import ipdb; ipdb.set_trace()
         for constraint in constraints:
             if not isinstance(constraint, Existence):
                 continue
             inner = constraint.type_
+            # if isinstance(inner.label, IsArray):
+            #     import ipdb; ipdb.set_trace()
+
             if isinstance(inner, DerivedTypeVariable) and isinstance(inner.label, IsArray):
                 if inner.type_var in self._lower_bounds:
                     curr_type = self._lower_bounds[inner.type_var]
+                    import ipdb; ipdb.set_trace()
                     if isinstance(curr_type, Pointer) and isinstance(curr_type.basetype, Struct):
                         # replace all fields with the first field
                         if 0 in curr_type.basetype.fields:

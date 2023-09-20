@@ -753,6 +753,8 @@ class SimEngineVRBase(SimEngineLight):
             is_global = True
 
         elif self._addr_has_concrete_base(addr) and self._parse_offseted_addr(addr) is not None:
+            # FIXME: Fails to handle <CONCRETE BASE> + <TOP> case
+
             # Loading data from a memory address with an offset
             base_addr, offset, elem_size = self._parse_offseted_addr(addr)
             v = self._load_from_global(base_addr.concrete_value, size, expr=expr, offset=offset, elem_size=elem_size)
@@ -856,6 +858,10 @@ class SimEngineVRBase(SimEngineLight):
                     typevars.HasField(size * self.state.arch.byte_width, concrete_offset),
                 )
                 self.state.add_type_constraint(typevars.Existence(load_typevar))
+
+                is_array = typevars.DerivedTypeVariable(typevar, typevars.IsArray())
+                self.state.add_type_constraint(typevars.Existence(is_array))
+
             else:
                 # FIXME: This is a hack
                 for i in range(0, 2):
