@@ -2,6 +2,7 @@
 from typing import Dict, Set, Optional
 import logging
 import collections.abc
+import re
 from sortedcontainers import SortedDict
 
 import networkx
@@ -13,6 +14,8 @@ from ..plugin import KnowledgeBasePlugin
 from .function import Function
 from .soot_function import SootFunction
 
+
+QUERY_MATCHER = re.compile(r"^(::(.+?))?::(.+)")
 
 l = logging.getLogger(name=__name__)
 
@@ -347,6 +350,9 @@ class FunctionManager(KnowledgeBasePlugin, collections.abc.Mapping):
     def get_by_addr(self, addr) -> Function:
         return self._function_map.get(addr)
 
+    def get_by_name(self, name: str) -> Set[Function]:
+        return {f for f in self._function_map.values() if f.name == name}
+
     def _function_added(self, func: Function):
         """
         A callback method for adding a new function instance to the manager.
@@ -403,6 +409,36 @@ class FunctionManager(KnowledgeBasePlugin, collections.abc.Mapping):
         except KeyError:
             return None
 
+    def query(self, query: str):
+        """
+        Query for a function by its disambiguated name. Supported variations:
+
+            ::<name>           Function <name> in the main object
+            ::<addr>::<name>   Function <name> at <addr>
+            ::<obj>::<name>>   Function <name> in object <obj>
+
+        """
+        # FIXME: Proper mangle handling
+        matches = QUERY_MATCHER.match(query)
+        if matches:
+            selector = matches.group(2)
+            name = matches.group(3)
+
+            if selector is not None and selector.startswith("0x"):
+                try:
+                    func = self._function_map.get(int(matches.group(2), 16), None)
+                    if func and func.name == name:
+                        return func
+                except ValueError:
+                    pass
+
+            obj_name = selector or self._kb._project.loader.main_object.binary_basename
+            for func in self.get_by_name(name):
+                if func.binary_name == obj_name:
+                    return func
+
+        return None
+
     def function(self, addr=None, name=None, create=False, syscall=False, plt=None) -> Optional[Function]:
         """
         Get a function object from the function manager.
@@ -433,10 +469,13 @@ class FunctionManager(KnowledgeBasePlugin, collections.abc.Mapping):
                         f.is_syscall = True
                     return f
         elif name is not None:
-            for func in self._function_map.values():
-                if func.name == name:
-                    if plt is None or func.is_plt == plt:
-                        return func
+            func = self.query(name)
+            if func is not None:
+                return func
+
+            for func in self.get_by_name(name):
+                if plt is None or func.is_plt == plt:
+                    return func
 
         return None
 

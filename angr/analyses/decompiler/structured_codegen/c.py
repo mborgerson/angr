@@ -543,6 +543,9 @@ class CFunction(CConstruct):  # pylint:disable=abstract-method
             header_cmt = self._line_wrap_comment("".join(header_comments))
             yield header_cmt, None
 
+        if self.codegen._func.is_plt:
+            yield "// attributes: PLT stub\n", None
+
         # return type
         yield self.functy.returnty.c_repr(name="").strip(" "), self.functy.returnty
         yield " ", None
@@ -1174,6 +1177,7 @@ class CFunctionCall(CStatement, CExpression):
         "tags",
         "is_expr",
         "show_demangled_name",
+        "show_disambiguated_name",
     )
 
     def __init__(
@@ -1198,6 +1202,7 @@ class CFunctionCall(CStatement, CExpression):
         self.tags = tags
         self.is_expr = is_expr
         self.show_demangled_name = show_demangled_name
+        self.show_disambiguated_name = True
 
     @property
     def prototype(self) -> Optional[SimTypeFunction]:  # TODO there should be a prototype for each callsite!
@@ -1212,6 +1217,23 @@ class CFunctionCall(CStatement, CExpression):
             return self.prototype.returnty or SimTypeInt(signed=False).with_arch(self.codegen.project.arch)
         else:
             raise RuntimeError("CFunctionCall.type should not be accessed if the function call is used as a statement.")
+
+    def _is_target_ambiguous(self, func_name: str) -> bool:
+        """
+        Check for call target name ambiguity with caller function.
+        """
+        caller, callee = self.codegen._func, self.callee_func
+
+        for var in self.codegen._variables_in_use.values():
+            if func_name == var.name:
+                return True
+
+        # FIXME: Handle name mangle
+        for func in self.codegen.kb.functions.get_by_name(callee.name):
+            if func is not callee and (caller.binary is not callee.binary or func.binary is callee.binary):
+                return True
+
+        return False
 
     def c_repr_chunks(self, indent=0, asexpr: bool = False):
         """
@@ -1232,6 +1254,8 @@ class CFunctionCall(CStatement, CExpression):
                 func_name = get_cpp_function_name(self.callee_func.demangled_name, specialized=False, qualified=True)
             else:
                 func_name = self.callee_func.name
+            if self.show_disambiguated_name and self._is_target_ambiguous(func_name):
+                func_name = self.callee_func.get_unambiguous_name(display_name=func_name)
             yield func_name, self
         else:
             yield from CExpression._try_c_repr_chunks(self.callee_target)
@@ -1440,15 +1464,19 @@ class CVariable(CExpression):
     def type(self):
         return self.variable_type
 
-    def c_repr_chunks(self, indent=0, asexpr=False):
+    @property
+    def name(self):
         v = self.variable if self.unified_variable is None else self.unified_variable
 
         if v.name:
-            yield v.name, self
+            return v.name
         elif isinstance(v, SimTemporaryVariable):
-            yield "tmp_%d" % v.tmp_id, self
+            return "tmp_%d" % v.tmp_id
         else:
-            yield str(v), self
+            return str(v)
+
+    def c_repr_chunks(self, indent=0, asexpr=False):
+        yield self.name, self
 
 
 class CIndexedVariable(CExpression):

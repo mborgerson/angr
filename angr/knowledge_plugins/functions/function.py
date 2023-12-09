@@ -1579,6 +1579,30 @@ class Function(Serializable):
                 return ast.__str__()
         return self.name
 
+    def get_unambiguous_name(self, display_name=None) -> str:
+        """ """
+        if display_name is None:
+            display_name = self.name
+
+        must_disambiguate_by_addr = self.binary is not self.project.loader.main_object and self.binary_name is None
+
+        # If there are multiple functions with the same name in the same object, disambiguate by address
+        # FIXME: Replace with faster lookup
+        if not must_disambiguate_by_addr:
+            for func in self._function_manager.get_by_name(self.name):
+                if func is not self and func.binary is self.binary:
+                    must_disambiguate_by_addr = True
+                    break
+
+        separator = "::"
+        n = separator
+        if must_disambiguate_by_addr:
+            n += hex(self.addr) + separator
+        elif self.binary is not self.project.loader.main_object:
+            n += self.binary_name + separator
+
+        return n + display_name
+
     def apply_definition(self, definition: str, calling_convention: Optional[Union[SimCC, Type[SimCC]]] = None) -> None:
         if not definition.endswith(";"):
             definition += ";"

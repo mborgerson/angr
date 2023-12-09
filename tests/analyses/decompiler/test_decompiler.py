@@ -3270,6 +3270,41 @@ class TestDecompiler(unittest.TestCase):
         # bad_matches = re.findall(r'\bif\s*\(\s*[^!].*\)', text)
         # assert len(bad_matches) == 0
 
+    def test_plt_stub_annotation(self):
+        bin_path = os.path.join(test_location, "x86_64", "fauxware")
+        proj = angr.Project(bin_path, auto_load_libs=False)
+        cfg = proj.analyses.CFGFast(normalize=True, data_references=True)
+        proj.analyses.CompleteCallingConventions(cfg=cfg, recover_variables=True, analyze_callsites=True)
+        func = proj.kb.functions.function(name="puts", plt=True)
+        d = proj.analyses[Decompiler](func, cfg=cfg.model)
+        assert "PLT stub" in d.codegen.text
+
+    def test_func_disambiguation_decompiled_func(self):
+        bin_path = os.path.join(test_location, "x86_64", "fauxware")
+        proj = angr.Project(bin_path, auto_load_libs=False)
+        cfg = proj.analyses.CFGFast(normalize=True, data_references=True)
+        proj.analyses.CompleteCallingConventions(cfg=cfg, recover_variables=True, analyze_callsites=True)
+        func = proj.kb.functions.function(name="puts", plt=True)
+        d = proj.analyses[Decompiler](func, cfg=cfg.model)
+        assert "::libc.so.0::puts" in d.codegen.text
+
+    def test_function_manager_name_query(self):
+        bin_path = os.path.join(test_location, "x86_64", "fauxware")
+        proj = angr.Project(bin_path, auto_load_libs=False)
+        proj.analyses.CFGFast(normalize=True, data_references=True)
+
+        assert proj.kb.functions["::read"].addr == 0x400530
+
+        assert proj.kb.functions["::0x400530::read"].addr == 0x400530
+
+        with self.assertRaises(KeyError):
+            proj.kb.functions["::0x400531::read"]
+
+        assert proj.kb.functions["::libc.so.0::read"].addr == 0x700010
+
+        with self.assertRaises(KeyError):
+            proj.kb.functions["::bad::read"]
+
 
 if __name__ == "__main__":
     unittest.main()
