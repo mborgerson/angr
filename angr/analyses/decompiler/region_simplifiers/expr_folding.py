@@ -218,6 +218,9 @@ class ExpressionCounter(SequenceWalker):
         self.uses: dict[SimVariable, set[tuple[Expression, LocationBase | None]]] = {}
         self._variable_manager: VariableManagerInternal = variable_manager
 
+        self._scope = []
+        self.use_scopes = defaultdict(set)
+
         super().__init__(handlers)
         self.walk(node)
 
@@ -249,6 +252,7 @@ class ExpressionCounter(SequenceWalker):
                             dependencies,
                             StatementLocation(node.addr, node.idx if isinstance(node, ailment.Block) else None, idx),
                             dependency_finder.has_load,
+                            tuple(self._scope),
                         )
                     )
         if (
@@ -268,6 +272,7 @@ class ExpressionCounter(SequenceWalker):
                         dependencies,
                         StatementLocation(node.addr, node.idx if isinstance(node, ailment.Block) else None, idx),
                         dependency_finder.has_load,
+                        tuple(self._scope),
                     )
                 )
 
@@ -286,6 +291,7 @@ class ExpressionCounter(SequenceWalker):
                 if u not in self.uses:
                     self.uses[u] = set()
                 self.uses[u] |= content
+                self.use_scopes[u].add(tuple(self._scope))
 
     def _collect_assignments(self, expr: ailment.Expr, node) -> None:
         finder = MultiStatementExpressionAssignmentFinder(self._handle_Statement)
@@ -303,6 +309,7 @@ class ExpressionCounter(SequenceWalker):
                 if u not in self.uses:
                     self.uses[u] = set()
                 self.uses[u].add((use[0], loc))
+                self.use_scopes[u].add(tuple(self._scope))
 
     def _handle_ConditionalBreak(self, node: ConditionalBreakNode, **kwargs):
         # collect uses on the condition expression
@@ -323,6 +330,8 @@ class ExpressionCounter(SequenceWalker):
         return super()._handle_CascadingCondition(node, **kwargs)
 
     def _handle_Loop(self, node: LoopNode, **kwargs):
+        self._scope.append(node)
+
         # collect uses on the condition expression
         if node.initializer is not None:
             self._collect_uses(node.initializer, ConditionLocation(node.addr))
@@ -331,7 +340,10 @@ class ExpressionCounter(SequenceWalker):
         if node.condition is not None:
             self._collect_assignments(node.condition, node)
             self._collect_uses(node.condition, ConditionLocation(node.addr))
-        return super()._handle_Loop(node, **kwargs)
+
+        r = super()._handle_Loop(node, **kwargs)
+        self._scope.pop()
+        return r
 
     def _handle_SwitchCase(self, node: SwitchCaseNode, **kwargs):
         self._collect_uses(node.switch_expr, ConditionLocation(node.addr))

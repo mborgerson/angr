@@ -102,7 +102,12 @@ class RegionSimplifier(Analysis):
         single_use_variables = []
         for var, uses in expr_counter.uses.items():
             if len(uses) == 1 and var in expr_counter.assignments and len(expr_counter.assignments[var]) == 1:
-                definition, deps, loc, has_loads = next(iter(expr_counter.assignments[var]))
+                definition, deps, loc, has_loads, def_scope = next(iter(expr_counter.assignments[var]))
+                (use_scope,) = expr_counter.use_scopes[var]
+                if not (len(use_scope) >= len(def_scope) and def_scope[0 : len(use_scope)] == use_scope):
+                    # the use is not within scope of the definition, skip it
+                    continue
+
                 if has_loads:
                     # the definition has at least one load expression. we need to ensure there are no store statements
                     # between the definition site and the use site
@@ -121,7 +126,7 @@ class RegionSimplifier(Analysis):
                 single_use_variables.append(var)
 
         for var in single_use_variables:
-            definition, deps, loc, _ = next(iter(expr_counter.assignments[var]))
+            definition, deps, loc, _, _ = next(iter(expr_counter.assignments[var]))
 
             # make sure all variables that var depends on has been assigned at most once
             fail = False
