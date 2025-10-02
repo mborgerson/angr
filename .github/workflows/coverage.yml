@@ -1,0 +1,136 @@
+name: Test with coverage
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build env
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v4
+      - uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2
+      - uses: astral-sh/setup-uv@b75a909f75acd358c2196fb9a5f1299a9a8868a4 # v6
+        with:
+          python-version: "3.10"
+      - name: Build
+        run: uv sync -v -p 3.10 --all-groups
+      - name: Archive environment
+        run: tar -cpf /tmp/env.tar --absolute-names $PWD $HOME/.local/share/uv
+      - name: Upload artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: venv
+          path: /tmp/env.tar
+          if-no-files-found: error
+          retention-days: 1
+
+  test:
+    needs: [build]
+    name: Test with coverage
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runner_id: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    steps:
+      - uses: astral-sh/setup-uv@b75a909f75acd358c2196fb9a5f1299a9a8868a4 # v6
+        with:
+          python-version: "3.10"
+          enable-cache: false
+          ignore-empty-workdir: true
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: venv
+          path: .
+      - name: Extract env
+        run: |
+          tar -xpf $PWD/env.tar -C /
+          rm env.tar
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v4
+        with:
+          repository: angr/binaries
+          path: binaries
+      - name: Relocate binaries
+        run: mv binaries ..
+      - name: Test
+        env:
+          SKIP_SLOW_TESTS: 1
+        run: |
+          source .venv/bin/activate
+          pytest -vv \
+            -n auto --splits 10 --group ${{ matrix.runner_id }} --splitting-algorithm=least_duration \
+            --cov=angr --cov=tests --cov-report=xml \
+            --junitxml=junit.xml -o junit_family=legacy \
+            --store-durations --durations-path=durations.json \
+            || [[ $? -lt 2 ]]  # Accept success and test failures, fail on infrastructure problems (exit codes >1)
+      - name: Check for results
+        run: |
+          [[ -e junit.xml && -e coverage.xml && -e durations.json ]]
+      - name: Upload results artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: results-${{ matrix.runner_id }}
+          if-no-files-found: error
+          path: |
+            ./junit.xml
+            ./coverage.xml
+            ./durations.json
+
+  report:
+      name: Report results
+      runs-on: ubuntu-latest
+      permissions:
+        id-token: write
+        checks: write
+        pull-requests: write
+      needs: [test]
+      steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v4
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          pattern: "results-*"
+          path: results
+      - name: Collect results
+        id: files
+        run: |
+          coverage=$(find . -type f -name 'coverage.xml' -print | paste -sd, -)
+          echo "coverage=$coverage" >> "$GITHUB_OUTPUT"
+          junit=$(find . -type f -name 'junit.xml' -print | paste -sd, -)
+          echo "junit=$junit" >> "$GITHUB_OUTPUT"
+      - name: Upload test coverage to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5
+        with:
+          use_oidc: true
+          fail_ci_if_error: true
+          verbose: true
+          files: ${{ steps.files.outputs.coverage }}
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@47f89e9acb64b76debcd5ea40642d25a4adced9f # v1
+        with:
+          use_oidc: true
+          fail_ci_if_error: true
+          verbose: true
+          files: ${{ steps.files.outputs.junit }}
+      - name: Combine test durations
+        if: ${{ !cancelled() }}
+        run: jq -Ss 'add' results/**/durations.json > durations.json
+      - name: Upload combined durations
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: durations
+          path: ./durations.json
+          if-no-files-found: error
+      - name: Publish test results
+        if: ${{ !cancelled() }}
+        uses: EnricoMi/publish-unit-test-result-action@3a74b2957438d0b6e2e61d67b05318aa25c9e6c6 # v2
+        with:
+          files: 'results/**/junit.xml'
+          action_fail_on_inconclusive: true
+      # FIXME: Publish durations
