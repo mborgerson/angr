@@ -11,7 +11,7 @@ from angr.analyses.decompiler import Decompiler
 from angr.analyses.decompiler.notes.deobfuscated_strings import DeobfuscatedStringsNote
 from angr.sim_type import parse_signature
 
-from tests.common import bin_location, print_decompilation_result
+from tests.common import bin_location, print_decompilation_result, slow_test
 
 
 binaries_base = os.path.join(bin_location, "tests")
@@ -22,6 +22,7 @@ class TestDecompilationNotes(unittest.TestCase):
     Tests for decompilation notes.
     """
 
+    @slow_test
     def test_decompilation_notes_obfuscated_string_netfilter_b64(self):
         """
         Test that decompilation notes are correctly generated.

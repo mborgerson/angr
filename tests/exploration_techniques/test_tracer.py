@@ -173,6 +173,7 @@ class TestTracer(unittest.TestCase):
         assert crash_path is not None
         assert crash_state is not None
 
+    @slow_test
     @skip_if_not_linux
     def test_manual_recursion(self):
         b = os.path.join(bin_location, "tests", "cgc", "CROMU_00071")
@@ -476,6 +477,7 @@ class TestTracer(unittest.TestCase):
             add_options=add_options,
         )
 
+    @slow_test
     @unittest.skipIf(platform.system() == "Darwin" and platform.machine() == "arm64", "Broken on apple silicon")
     @unittest.skipIf(sys.platform == "win32", "broken on windows")
     def test_symbolic_sized_receives(self):
