@@ -4906,6 +4906,9 @@ class TestDecompiler(unittest.TestCase):
         assert "None" not in dec.codegen.text
         assert "return GetCurrentThreadId();" in dec.codegen.text
 
+    def test_failure(self):
+        assert False
+
     def test_decompiling_many_consecutive_regions(self, decompiler_options=None):
         bin_path = os.path.join(
             test_location,
