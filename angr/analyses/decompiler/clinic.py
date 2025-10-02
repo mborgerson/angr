@@ -253,6 +253,14 @@ class Clinic(Analysis):
     # Public methods
     #
 
+    def untested_function(self, number: int):
+        if number > 0x1234:
+            print("hello")
+        elif number == 0:
+            print(repr(self.notes))
+        else:
+            raise ValueError("nope")
+
     def block(self, addr, size):
         """
         Get the converted block at the given specific address with the given size.
