@@ -2,7 +2,7 @@
 from __future__ import annotations
 import unittest
 
-from angr.utils.bits import truncate_bits
+from angr.utils.bits import truncate_bits, check_number
 
 
 # pylint: disable=missing-class-docstring,disable=no-self-use
@@ -17,6 +17,10 @@ class TestBits(unittest.TestCase):
         assert truncate_bits(0x1234, 8) == 0x34
         assert truncate_bits(0x1234, 16) == 0x1234
         assert truncate_bits(0x1234, 32) == 0x1234
+
+    def test_check_number(self):
+        assert check_number(1337) == "great"
+        assert check_number(0) == "oops"
 
 
 if __name__ == "__main__":
