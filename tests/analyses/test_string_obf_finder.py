@@ -19,6 +19,8 @@ binaries_base = os.path.join(
 
 
 class TestStringObfFinder(TestCase):
+
+    @slow_test
     def test_netfilter_b64(self):
         # - type 1 string obfuscation: deobfuscator at 0x140001A90
         # - type 2 string obfuscation: deobfuscator at 0x140001A18
