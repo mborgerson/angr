@@ -44,3 +44,10 @@ def u2s(u, bits):
     if u < (1 << (bits - 1)):
         return u
     return (u & ((1 << bits) - 1)) - (1 << bits)
+
+
+def check_number(number: int) -> str:
+    if number == 1337:
+        return "great"
+    else:
+        return "oops"
