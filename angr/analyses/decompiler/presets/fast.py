@@ -36,11 +36,16 @@ from angr.analyses.decompiler.optimization_passes import (
     DetermineLoadSizes,
     PostStructuringPeepholeOptimizationPass,
     EagerStdStringConcatenationPass,
+    IRegReplacer,
+    InsertExtractReverter,
+    ITESimplifier,
 )
 
 preset_fast = DecompilationPreset(
     "fast",
     [
+        IRegReplacer,
+        InsertExtractReverter,
         RegisterSaveAreaSimplifier,
         StackCanarySimplifier,
         WinStackCanarySimplifier,
@@ -76,6 +81,9 @@ preset_fast = DecompilationPreset(
         DetermineLoadSizes,
         PostStructuringPeepholeOptimizationPass,
         EagerStdStringConcatenationPass,
+        IRegReplacer,
+        InsertExtractReverter,
+        ITESimplifier,
     ],
 )
 
